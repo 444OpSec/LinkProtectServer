@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models import HealthCheck
+from .models import HealthCheck, ScanRequest, ScanResponse
+
+from . import strings
 
 app = FastAPI(
     title="LinkProtect Server",
@@ -20,11 +22,21 @@ app.add_middleware(
 )
 
 @app.get("/")
-def read_root():
+async def read_root():
     """Welcome message"""
     return HTMLResponse('Это API сервер LinkProtect. Вы можете просмотреть документацию Swagger <a href="docs">здесь</a>')
 
 @app.get("/health")
-def health() -> HealthCheck:
+async def health() -> HealthCheck:
     """Perform a health check"""
     return HealthCheck(status="OK")
+
+@app.post("/scan")
+async def scan(req: ScanRequest) -> ScanResponse:
+    if req.url.startswith("http://"):
+        return ScanResponse(
+            result=False,
+            additional_info="",
+            virus_type=strings.UNSAFE_HTTP,
+            virus_consequences=strings.UNSAFE_HTTP_DESC)
+    return ScanResponse(result=True, additional_info=strings.SAFE)
