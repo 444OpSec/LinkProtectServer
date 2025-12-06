@@ -1,0 +1,7 @@
+fastapi
+orjson
+pydantic-settings
+
+uvloop; sys_platform != "win32"
+hypercorn; sys_platform == "win32"
+hypercorn[uvloop]; sys_platform != "win32"
