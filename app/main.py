@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .models import HealthCheck, ScanRequest, ScanResponse
 
-from . import strings
+from . import chkengine
 
 app = FastAPI(
     title="LinkProtect Server",
@@ -33,10 +33,4 @@ async def health() -> HealthCheck:
 
 @app.post("/scan")
 async def scan(req: ScanRequest) -> ScanResponse:
-    if req.url.startswith("http://"):
-        return ScanResponse(
-            result=False,
-            additional_info="",
-            virus_type=strings.UNSAFE_HTTP,
-            virus_consequences=strings.UNSAFE_HTTP_DESC)
-    return ScanResponse(result=True, additional_info=strings.SAFE)
+    return await chkengine.check(req)
