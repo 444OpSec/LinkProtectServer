@@ -23,13 +23,13 @@ class CheckProto(typing.Protocol):
 class HTTPCheck(CheckProto):
     @staticmethod
     async def check(req):
-        if urlparse(req.url).scheme != "https":
+        if req._parse.scheme != "https":
             raise CheckFailed(virus_type=strings.UNSAFE_HTTP, virus_consequences=strings.UNSAFE_HTTP_DESC)
 
 class DomainZoneInfo(CheckProto):
     @staticmethod
     async def check(req):
-        domain = urlparse(req.url).hostname
+        domain = req._parse.hostname
         if not domain: return
         if domain.endswith('.ru'):
             return strings.RU_DOMAIN_ZONE
@@ -43,7 +43,7 @@ class KnownTrusted(CheckProto):
     
     @staticmethod
     async def check(req):
-        domain = urlparse(req.url).hostname
+        domain = req._parse.hostname
         if domain in KnownTrusted._trusted_domains:
             return strings.TRUSTED_DOMAIN
 
@@ -66,8 +66,7 @@ class SuspiciousTLDCheck(CheckProto):
     
     @staticmethod
     async def check(req: models.ScanRequest) -> str | None:
-        parsed_url = urlparse(req.url)
-        hostname = parsed_url.hostname
+        hostname = req._parse.hostname
         if hostname and any(hostname.endswith(tld) for tld in SuspiciousTLDCheck._bad_tlds):
             raise CheckFailed(virus_type=strings.SUSPICIOUS_TLD, virus_consequences=strings.SUSPICIOUS_TLD_DESC)
 
@@ -79,8 +78,7 @@ class URLShortenerCheck(CheckProto):
     
     @staticmethod
     async def check(req: models.ScanRequest) -> str | None:
-        parsed_url = urlparse(req.url)
-        hostname = parsed_url.hostname
+        hostname = req._parse.hostname
         if hostname and hostname in URLShortenerCheck._shorteners:
             return strings.URL_SHORTENER_WARNING
 
@@ -90,8 +88,7 @@ class TyposquattingCheck(CheckProto):
     
     @staticmethod
     async def check(req: models.ScanRequest) -> str | None:
-        parsed_url = urlparse(req.url)
-        hostname = parsed_url.hostname
+        hostname = req._parse.hostname
         if not hostname: return
         if hostname in KnownTrusted._trusted_domains or any(hostname.endswith("." + td) for td in KnownTrusted._trusted_domains):
             return
@@ -142,6 +139,7 @@ async def check(req: models.ScanRequest) -> models.ScanResponse:
     if _session is None:
         _session = aiohttp.ClientSession()
     try:
+        req._parse = urlparse(req.url)
         comments = await asyncio.gather(
             *(_chk.check(req) for _chk in enabled_checks),
             return_exceptions=req.settings.link_deep_check # set to False to handle first exception (faster, but less additional info)
