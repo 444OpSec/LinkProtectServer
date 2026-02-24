@@ -1,4 +1,4 @@
-# Hypercorn release run config (LINIX ONLY)
+# Hypercorn release run config (UNIX ONLY)
 
 import multiprocessing
 import os
